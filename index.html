@@ -1,0 +1,472 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="ie=edge">
+        <title>Simplex PO</title>
+        <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/css/bootstrap.min.css" integrity="sha384-9aIt2nRpC12Uk9gS9baDl411NQApFmC26EwAOH8WgZl5MYYxFfc+NcPb1dKGj7Sk" crossorigin="anonymous">
+    </head>
+    <body>
+        <div id="app" class=" m-5">
+            <div v-if="etapa == 1">
+                <label class="m-2">Quantas variáveis de decisão tem o problema?</label>
+                <input class="m-2 text-center numero" type="text" @keypress="validaInput" v-model="quantidadevariaveldecisao">
+                </br>
+
+                <label class="m-2">Quantas restrições?</label>
+                <input class="m-2 text-center" type="text" @keypress="validaInput" v-model="quantidaderestricoes">
+                </br>
+
+                <button class="btn btn-primary" type="button" @click="cliqueContinuarEtapaUm">Continuar</button>
+            </div>
+            <div v-else-if="etapa == 2">
+                <label class="m-2">Qual é o objetivo da função?</label>
+                <select class="m-2" name="objetivo" v-model="objetivo">
+                    <option value="max">Maximizar</option>
+                </select>
+                </br>
+
+                <label class="m-2">Qual o sinal das restrições?</label>
+                <select class="m-2" v-model="sinalrestricao">
+                    <option :value="'<='">{{'<='}}</option>
+                </select>
+                </br>
+
+                <label class="font-weight-bold m-2">Função Objetivo:</label>
+                <span v-for="(v, index) in funcaoobjetivo">
+                    <span v-if="index != 'resultado'">+</span>
+                    <input class="m-2 text-center" type="text" @keypress="validaInput" v-model="funcaoobjetivo[index]">
+                    <span v-if="index != 'resultado'">{{index}}</span>
+                </span>
+                </br>
+                </br>
+                <label class="font-weight-bold m-2">Restrições:</label>
+                <div v-for="restricao in restricoes">
+                    <span v-for="(v, index) in restricao">
+                        <span v-if="index != 'resultado'">+</span>
+                        <input class="m-2 text-center" v-if="index != 'resultado'" class="m-2" type="text" @keypress="validaInput" v-model="restricao[index]">
+                        <span v-if="index != 'resultado'">{{index}}</span>
+                    </span>
+
+                    <label>{{sinalrestricao}}</label>
+
+                    <input class="m-2 text-center" type="text" @keypress="validaInput" v-model="restricao['resultado']">
+                </div>
+                </br>
+
+                <button class="btn btn-primary" type="button" @click="cliqueContinuarEtapaDois">Continuar</button>
+            </div>
+            <div v-else-if="etapa == 3">
+                <h2 class="m-2">Forma Padrão do Simplex</h2>
+
+                </br>
+                <div class="row">
+                    <li>Como a(s) restrição(ôes) é(são) do tipo '{{sinalrestricao}}' foi adicionado a variável de folga F<span style="font-size: 11px;">i</span> para cada uma.</li>
+                </div>
+                </br>
+                <span class="font-weight-bold" v-if="objetivo == 'max'">Maximizar: </span>
+
+                <span>F.O = </span>
+
+                <span v-for="(v, index) in funcaoobjetivo">
+                    <span v-if="index != 'resultado'">+</span>
+                    <span>{{funcaoobjetivo[index]}}</span>
+                    <span v-if="index != 'resultado'">{{index}}</span>
+                </span>
+                </br>
+
+                <div v-for="restricaofp in restricoesformapadrao">
+                    <span v-for="(v, index) in restricaofp">
+                        <span v-if="index != 'resultado'">+</span>
+                        <span v-if="index != 'resultado'">{{restricaofp[index]}}</span>
+                        <span v-if="index != 'resultado'">{{index}}</span>
+                    </span>
+                    <span>{{restricaofp['folga']}}</span>
+                    <label class="m-2">=</label>
+                    <span>{{restricaofp['resultado']}}</span>
+                </div>
+
+                </br>
+                <button class="btn btn-primary" type="button" @click="cliqueContinuarEtapaTres">Continuar</button>
+            </div>
+            <div v-else-if="etapa == 4">
+                <h2 class="m-2" v-if="interacao == 0">Solução Básica Inicial</h2>
+                <h2 class="m-2" v-else>Interação {{interacao}}</h2>
+                </br>
+
+                <div class="row" v-if="interacao != 0">
+                    <span class="font-weight-bold mr-2">Entra: </span><span class="mr-5">{{entra}}</span>
+                    <span class="font-weight-bold mr-2">Sai: </span><span>{{"F" + String((Number(sai) + 1))}}</span>
+                </div>
+
+                <div class="row">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Base</th>
+                                <th v-for="(nome, index) in colunas">{{index == 'resultado' ? 'B' : index}}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="linha, index in quadro">
+                                <th>{{ linhas[index] }}</th>
+                                <td v-for="valor in linha">{{ valor }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="row" v-for="linha, index in quadro">
+                    <span class="ml-2 mr-2 mt-1 mb-1">{{ linhas[index] }}</span>
+                    <span class="ml-2 mr-2 mt-1 mb-1">=</span>
+                    <span class="ml-2 mr-2 mt-1 mb-1">{{ linha['resultado'] }}</span>
+                </div>
+                <div class="row">
+                    <button class="btn btn-primary mx-auto" type="button" @click="proximaInteracao">Continuar</button>
+                </div>
+            </div>
+            <div v-else-if="etapa == 5">
+                <div class="row">
+                    <h2 class="m-2 mx-auto pb-3">Solução Otima</h2>
+                </div>
+
+                <div class="row" v-if="interacao != 0">
+                    <span class="font-weight-bold mr-2">Entra: </span><span class="mr-5">{{entra}}</span>
+                    <span class="font-weight-bold mr-2">Sai: </span><span>{{"F" + String((Number(sai) + 1))}}</span>
+                </div>
+                
+                <div class="row">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th>Base</th>
+                                <th v-for="(nome, index) in colunas">{{index == 'resultado' ? 'B' : index}}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="linha, index in quadro">
+                                <th>{{ linhas[index] }}</th>
+                                <td v-for="valor in linha">{{ valor }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="row" v-for="linha, index in quadro">
+                    <span class="ml-2 mr-2 mt-1 mb-1">{{ linhas[index] }}</span>
+                    <span class="ml-2 mr-2 mt-1 mb-1">=</span>
+                    <span class="ml-2 mr-2 mt-1 mb-1">{{ linha['resultado'] }}</span>
+                </div>
+                <div class="row">
+                    <button class="btn btn-primary mx-auto" type="button" @click="voltarComeco">Começo</button>
+                </div>
+            </div>
+        </div>
+
+        <script src="https://unpkg.com/vue"></script>
+        <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js" integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj" crossorigin="anonymous"></script>
+        <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.0/dist/umd/popper.min.js" integrity="sha384-Q6E9RHvbIyZFJoft+2mJbHaEWldlvI9IOYy5n3zV9zzTtmI3UksdQRVvoxMfooAo" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.0/js/bootstrap.min.js" integrity="sha384-OgVRvuATP1z7JjHLkuOU7Xw704+h835Lr+6QL9UvYjZE3Ipu6Tp75j7Bh/kR0JKI" crossorigin="anonymous"></script>
+
+        <script>
+            var app = new Vue({
+                el: "#app",
+                data: {
+                    etapa: 1,
+                    quantidadevariaveldecisao: 0,
+                    quantidaderestricoes: 0,
+                    restricoes: [],
+                    objetivo: "max",
+                    sinalrestricao: "<=",
+                    funcaoobjetivo: {},
+                    qt: [],
+                    restricoesformapadrao: [],
+                    quadro: [],
+                    entra: '',
+                    sai: '',
+                    pivo: '',
+                    interacao: 0,
+                    colunas: [],
+                    linhas: []
+                },
+                methods:{
+                    validaInput(evt){
+                        var theEvent = evt || window.event;
+                        var key = theEvent.keyCode || theEvent.which;
+                        key = String.fromCharCode( key );
+                        //var regex = /^[0-9.,]+$/;
+                        var regex = /^[0-9.]+$/;
+                        if( !regex.test(key) || (evt.target.value.indexOf('.') != -1 && evt.key == ".")) {
+                            theEvent.returnValue = false;
+                            if(theEvent.preventDefault) theEvent.preventDefault();
+                        }
+                    },
+                    voltarComeco(){
+                        this.etapa = 1;
+                        this.quantidadevariaveldecisao = 0;
+                        this.quantidaderestricoes = 0;
+                        this.restricoes = [];
+                        this.objetivo = "max";
+                        this.sinalrestricao = "<=";
+                        this.funcaoobjetivo = {};
+                        this.qt = [];
+                        this.restricoesformapadrao = [];
+                        this.quadro = [];
+                        this.entra = '';
+                        this.sai = '';
+                        this.pivo = '';
+                        this.interacao = 0;
+                        this.colunas = [];
+                        this.linhas = [];
+                    },
+                    validaDadosEtapaUm(){
+                        if(String(this.quantidaderestricoes).trim() == "" || Number(this.quantidaderestricoes) <= 0)
+                            return false;
+                        
+                        if(String(this.quantidadevariaveldecisao).trim() == "" || Number(this.quantidadevariaveldecisao) <= 0)
+                            return false;
+                        
+                        return true;
+                    },
+                    cliqueContinuarEtapaUm(){
+                        if(!this.validaDadosEtapaUm())
+                            return alert("Informe um valor válido.");
+
+                        let restricao = {};
+                        this.funcaoobjetivo = {};
+                        for(let i = 0; i < this.quantidadevariaveldecisao; i++)
+                        {
+                            restricao[("X" + String(i+1))] = 0;
+                            this.funcaoobjetivo[("X" + String(i+1))] = 0;
+                        }
+
+                        restricao["resultado"] = 0;
+
+                        this.qt = [];
+
+                        for(let i = 0; i < this.quantidaderestricoes; i++)
+                        {
+                            this.restricoes.push(JSON.parse(JSON.stringify(restricao)));
+                            this.qt.push(i)
+                        }
+                        
+                        this.etapa = 2;
+                    },
+                    validaDadosEtapaDois(){
+                        for(var i in this.funcaoobjetivo)
+                        {
+                            if(String(this.funcaoobjetivo[i]).trim() == "" || Number(this.funcaoobjetivo[i]) <= 0)
+                                return false;
+                        }
+
+                        for(var i in this.restricoes)
+                        {
+                            for(var j in this.restricoes[i])
+                            {
+                                if(String(this.restricoes[i][j]).trim() == "" || Number(this.restricoes[i][j]) <= 0)
+                                    return false;
+                            }
+                        }
+
+                        return true;
+                    },
+                    cliqueContinuarEtapaDois(){
+                        if(!this.validaDadosEtapaDois())
+                            return alert("Informe um valor válido.");
+
+                        this.restricoesformapadrao = [];
+                        for(var i in this.restricoes)
+                        {
+                            let restricao = {};
+                            for(var j in this.restricoes[i])
+                            {
+                                if(j == "resultado")
+                                {
+                                    restricao["F" + (Number(i) + 1)] = 1;
+                                    restricao.resultado = JSON.parse(JSON.stringify(this.restricoes[i]['resultado']));
+                                }
+                                else
+                                {
+                                    restricao[j] = JSON.parse(JSON.stringify(this.restricoes[i][j]));
+                                }
+                            }
+                            
+                            this.restricoesformapadrao.push(restricao);
+                        }
+                        
+                        this.etapa = 3;
+                    },
+                    cliqueContinuarEtapaTres(){
+                        this.geraQuadroBase();
+                        this.etapa = 4;
+                        this.verificaSolucaoOtima();
+                    },
+                    proximaInteracao(){
+                        this.interacao++;
+
+                        this.getEntra();
+                        this.getSai();
+
+                        this.pivo = Number(this.quadro[this.sai][this.entra]);
+
+                        let quadro = [];
+
+                        //monta quadro
+
+                        quadro[this.sai] = {};
+
+                        this.linhas[this.sai] = this.entra;
+
+                        for(var i in this.quadro[this.sai])
+                        {
+                            quadro[this.sai][i] = (Number(this.quadro[this.sai][i]) / Number(this.pivo));
+                        }
+
+                        for(var i in this.quadro)
+                        {
+                            if(i != this.sai)
+                            {
+                                quadro[i] = {};
+                                for(var j in this.quadro[i])
+                                {
+                                    quadro[i][j] = Number(quadro[this.sai][j]) * (0 - Number(this.quadro[i][this.entra])) + Number(this.quadro[i][j]);
+                                }
+                            }
+                        }
+                        this.quadro = JSON.parse(JSON.stringify(quadro));
+                        
+                        this.verificaSolucaoOtima();
+                    },
+                    verificaSolucaoOtima(){
+                        let menorzero = false;
+                        
+                        for(var i in this.quadro[(this.quadro.length - 1)])
+                        {
+                            if(Number(this.quadro[(this.quadro.length - 1)][i]) < 0)
+                            {
+                                menorzero = true;
+                                break;
+                            }
+                        }
+                        if(!menorzero)
+                        {
+                            this.etapa = 5;
+                        }
+                    },
+                    getEntra(){
+                        let menor = 0;
+                        for(var i in this.quadro[(this.quadro.length - 1)])
+                        {
+                            if(Number(this.quadro[(this.quadro.length - 1)][i]) < menor)
+                            {
+                                menor = JSON.parse(JSON.stringify(Number(this.quadro[(this.quadro.length - 1)][i])));
+                                this.entra = i;
+                            }
+                        }
+                    },
+                    getSai(){
+                        let resultados = [];
+                        for(var i in this.quadro)
+                        {
+                            if(i != (this.quadro.length - 1))
+                            {
+                                resultados.push((0 - Number(this.quadro[i]["resultado"])) / Number(this.quadro[i][this.entra]));
+                            }
+                        }
+                        // menor e maior que 0
+                        let maior = resultados[0];
+                        for(var i in resultados)
+                        {
+                            if(resultados[i] >= maior && resultados[i] < 0)
+                            {
+                                maior = JSON.parse(JSON.stringify(Number(resultados[i])));
+                                this.sai = i;
+                            }
+                        }
+                    },
+                    geraQuadroBase(){
+                        this.quadro = [];
+
+                        let colunas = {};
+                        this.linhas = [];
+                        for(let qt = 0; qt < this.quantidadevariaveldecisao; qt++)
+                        {
+                            colunas[("X" + String(qt+1))] = 0;
+                        }
+
+                        for(let qt = 0; qt < this.quantidaderestricoes; qt++)
+                        {
+                            colunas[("F" + String(qt+1))] = 0;
+                            this.linhas.push(("F" + String(qt+1)));
+                        }
+
+                        this.linhas.push("F.O");
+
+                        colunas["resultado"] = 0;
+
+                        this.colunas = colunas;
+
+                        let linha = {};
+                        
+                        for(var i in this.restricoesformapadrao)
+                        {
+                            for(var c in colunas)
+                            {
+                                let possui = false;
+                                for(var k in this.restricoesformapadrao[i])
+                                {
+                                    if(c == k)
+                                    {
+                                        possui = true;
+                                        break;
+                                    }
+                                }
+                                if(possui)
+                                {
+                                    linha[c] = Number(this.restricoesformapadrao[i][c]);
+                                }
+                                else
+                                {
+                                    linha[c] = 0;
+                                }
+                            }
+                            this.quadro.push(JSON.parse(JSON.stringify(linha)));
+                        }
+
+                        linha = {}
+
+                        for(var c in colunas)
+                        {
+                            let possui = false;
+                            for(var k in this.funcaoobjetivo)
+                            {
+                                if(c == k)
+                                {
+                                    possui = true;
+                                    break;
+                                }
+                            }
+                            if(possui)
+                            {
+                                linha[c] = 0 - Number(this.funcaoobjetivo[c]);
+                            }
+                            else
+                            {
+                                linha[c] = 0;
+                            }
+                        }
+
+                        this.quadro.push(JSON.parse(JSON.stringify(linha)));
+                    }
+                }
+            });
+        </script>
+        <style type="text/css" scoped>
+            #app {
+                text-align: center;
+            }
+            #tabela {
+                text-align: center;
+            }
+        </style>
+    </body>
+</html>
