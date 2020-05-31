@@ -24,6 +24,7 @@
                 <label class="m-2">Qual é o objetivo da função?</label>
                 <select class="m-2" name="objetivo" v-model="objetivo">
                     <option value="max">Maximizar</option>
+                    <option value="min">Minimizar</option>
                 </select>
                 </br>
 
@@ -66,6 +67,7 @@
                 </div>
                 </br>
                 <span class="font-weight-bold" v-if="objetivo == 'max'">Maximizar: </span>
+                <span class="font-weight-bold" v-if="objetivo == 'min'">Minimizar: </span>
 
                 <span>F.O = </span>
 
@@ -88,7 +90,8 @@
                 </div>
 
                 </br>
-                <button class="btn btn-primary" type="button" @click="cliqueContinuarEtapaTres">Continuar</button>
+                <button class="btn btn-primary" type="button" @click="cliqueContinuarEtapaTres(false)">Solução passo a passo</button>
+                <button class="btn btn-primary" type="button" @click="cliqueContinuarEtapaTres(true)">Solução direta</button>
             </div>
             <div v-else-if="etapa == 4">
                 <h2 class="m-2" v-if="interacao == 0">Solução Básica Inicial</h2>
@@ -186,7 +189,8 @@
                     pivo: '',
                     interacao: 0,
                     colunas: [],
-                    linhas: []
+                    linhas: [],
+                    direta: false
                 },
                 methods:{
                     validaInput(evt){
@@ -194,8 +198,8 @@
                         var key = theEvent.keyCode || theEvent.which;
                         key = String.fromCharCode( key );
                         //var regex = /^[0-9.,]+$/;
-                        var regex = /^[0-9.]+$/;
-                        if( !regex.test(key) || (evt.target.value.indexOf('.') != -1 && evt.key == ".")) {
+                        var regex = /^[0-9.-]+$/;
+                        if( !regex.test(key) || (evt.target.value.indexOf('.') != -1 && evt.key == ".") || (evt.target.value.indexOf('-') != -1 && evt.key == "-")) {
                             theEvent.returnValue = false;
                             if(theEvent.preventDefault) theEvent.preventDefault();
                         }
@@ -205,7 +209,7 @@
                         this.quantidadevariaveldecisao = 0;
                         this.quantidaderestricoes = 0;
                         this.restricoes = [];
-                        this.objetivo = "max";
+                        //this.objetivo = "max";
                         this.sinalrestricao = "<=";
                         this.funcaoobjetivo = {};
                         this.qt = [];
@@ -219,10 +223,10 @@
                         this.linhas = [];
                     },
                     validaDadosEtapaUm(){
-                        if(String(this.quantidaderestricoes).trim() == "" || Number(this.quantidaderestricoes) <= 0)
+                        if(String(this.quantidaderestricoes).trim() == "" || Number(this.quantidaderestricoes) <= 0 || (String(this.quantidaderestricoes).indexOf('-') != -1 && String(this.quantidaderestricoes).indexOf('-') != 0))
                             return false;
                         
-                        if(String(this.quantidadevariaveldecisao).trim() == "" || Number(this.quantidadevariaveldecisao) <= 0)
+                        if(String(this.quantidadevariaveldecisao).trim() == "" || Number(this.quantidadevariaveldecisao) <= 0 || (String(this.quantidadevariaveldecisao).indexOf('-') != -1 && String(this.quantidadevariaveldecisao).indexOf('-') != 0))
                             return false;
                         
                         return true;
@@ -254,7 +258,7 @@
                     validaDadosEtapaDois(){
                         for(var i in this.funcaoobjetivo)
                         {
-                            if(String(this.funcaoobjetivo[i]).trim() == "" || Number(this.funcaoobjetivo[i]) <= 0)
+                            if(String(this.funcaoobjetivo[i]).trim() == "" || (String(this.funcaoobjetivo[i]).indexOf('-') != -1 && String(this.funcaoobjetivo[i]).indexOf('-') != 0))
                                 return false;
                         }
 
@@ -262,7 +266,7 @@
                         {
                             for(var j in this.restricoes[i])
                             {
-                                if(String(this.restricoes[i][j]).trim() == "" || Number(this.restricoes[i][j]) <= 0)
+                                if(String(this.restricoes[i][j]).trim() == "" || (String(this.restricoes[i][j]).indexOf('-') != -1 && String(this.restricoes[i][j]).indexOf('-') != 0))
                                     return false;
                             }
                         }
@@ -295,7 +299,8 @@
                         
                         this.etapa = 3;
                     },
-                    cliqueContinuarEtapaTres(){
+                    cliqueContinuarEtapaTres(op){
+                        this.direta = op;
                         this.geraQuadroBase();
                         this.etapa = 4;
                         this.verificaSolucaoOtima();
@@ -306,7 +311,8 @@
                         this.getEntra();
                         this.getSai();
 
-                        this.pivo = Number(this.quadro[this.sai][this.entra]);
+                        if(typeof(this.quadro[this.sai]) != 'undefined')
+                            this.pivo = Number(this.quadro[this.sai][this.entra]);
 
                         let quadro = [];
 
@@ -318,7 +324,10 @@
 
                         for(var i in this.quadro[this.sai])
                         {
-                            quadro[this.sai][i] = (Number(this.quadro[this.sai][i]) / Number(this.pivo));
+                            if(Number(this.pivo) != 0)
+                                quadro[this.sai][i] = (Number(this.quadro[this.sai][i]) / Number(this.pivo));
+                            else
+                                quadro[this.sai][i] = 0;
                         }
 
                         for(var i in this.quadro)
@@ -351,6 +360,10 @@
                         {
                             this.etapa = 5;
                         }
+                        else if(this.direta)
+                        {
+                            this.proximaInteracao();
+                        }
                     },
                     getEntra(){
                         let menor = 0;
@@ -369,14 +382,25 @@
                         {
                             if(i != (this.quadro.length - 1))
                             {
-                                resultados.push((0 - Number(this.quadro[i]["resultado"])) / Number(this.quadro[i][this.entra]));
+                                if(Number(this.quadro[i][this.entra]) != 0)
+                                    resultados.push((0 - Number(this.quadro[i]["resultado"])) / Number(this.quadro[i][this.entra]));
+                                else
+                                    resultados.push(0);
                             }
                         }
+                        
                         // menor e maior que 0
-                        let maior = resultados[0];
+                        let maior;
+                        let primeiro = true;
                         for(var i in resultados)
                         {
-                            if(resultados[i] >= maior && resultados[i] < 0)
+                            if(resultados[i] < 0 && primeiro)
+                            {
+                                maior = resultados[i];
+                                this.sai = i;
+                                primeiro = false;
+                            }
+                            if(resultados[i] >= maior && resultados[i] < 0 && !primeiro)
                             {
                                 maior = JSON.parse(JSON.stringify(Number(resultados[i])));
                                 this.sai = i;
@@ -447,7 +471,10 @@
                             }
                             if(possui)
                             {
-                                linha[c] = 0 - Number(this.funcaoobjetivo[c]);
+                                if(this.objetivo == "max")
+                                    linha[c] = 0 - Number(this.funcaoobjetivo[c]);
+                                else if(this.objetivo == "min")
+                                    linha[c] = Number(this.funcaoobjetivo[c]);
                             }
                             else
                             {
