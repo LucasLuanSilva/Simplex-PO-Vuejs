@@ -157,7 +157,8 @@
                 <div class="row" v-for="linha, index in quadro">
                     <span class="ml-2 mr-2 mt-1 mb-1">{{ linhas[index] }}</span>
                     <span class="ml-2 mr-2 mt-1 mb-1">=</span>
-                    <span class="ml-2 mr-2 mt-1 mb-1">{{ linha['resultado'] }}</span>
+                    <span class="ml-2 mr-2 mt-1 mb-1" v-if="(quadro.length -1) == index && objetivo == 'min'">{{ 0 - linha['resultado'] }}</span>
+                    <span class="ml-2 mr-2 mt-1 mb-1" v-else>{{ linha['resultado'] }}</span>
                 </div>
                 <div class="row">
                     <button class="btn btn-primary mx-auto" type="button" @click="voltarComeco">Começo</button>
