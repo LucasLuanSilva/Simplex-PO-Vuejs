@@ -308,15 +308,6 @@
 
                                 valoresAnalise.TIPO = "Folga";
 
-                                if(this.linhas.indexOf(valoresAnalise.VARIAVEL) != -1 && this.quadro[this.linhas.indexOf(valoresAnalise.VARIAVEL)]['resultado'] == 0)
-                                {
-                                    valoresAnalise.RECURSOESCASSO = "Sim";
-                                }
-                                else
-                                {
-                                    valoresAnalise.RECURSOESCASSO = "Não";
-                                }
-
                                 if(this.linhas.indexOf(valoresAnalise.VARIAVEL) != -1)
                                 {
                                     valoresAnalise.VALORFINAL = this.quadro[this.linhas.indexOf(valoresAnalise.VARIAVEL)]['resultado'];
@@ -334,48 +325,59 @@
                                     valoresAnalise.SOBRARECURSO = 0;
                                 }
 
+                                if(valoresAnalise.VALORFINAL == 0)
+                                {
+                                    valoresAnalise.RECURSOESCASSO = "Sim";
+                                }
+                                else
+                                {
+                                    valoresAnalise.RECURSOESCASSO = "Não";
+                                }
+
                                 valoresAnalise.PRECOSOMBRA = this.quadro[this.quadro.length - 1][valoresAnalise.VARIAVEL];
 
-                                valoresAnalise.USORECURSO = valoresAnalise.VALORINICIAL - valoresAnalise.VALORFINAL;
+                                valoresAnalise.USORECURSO = Number(valoresAnalise.VALORINICIAL) - Number(valoresAnalise.VALORFINAL);
 
                                 valoresAnalise.CUSTOREDUZIDO = "-";
                                 
                                 valoresAnalise.AUMENTAR = 99999999999999;
-                                valoresAnalise.REDUZIR = -99999999999999;
+                                valoresAnalise.REDUZIR = 99999999999999;
                                 for(var j = 0; j < (this.quadro.length - 1); j++)
                                 {
                                     let aux = 0;
-                                    if(this.quadro[j][valoresAnalise.VARIAVEL] != 0)
+                                    if(Number(this.quadro[j][valoresAnalise.VARIAVEL]) != 0)
                                     {
-                                        aux = (this.quadro[j]["resultado"] / this.quadro[j][valoresAnalise.VARIAVEL]) * -1;
+                                        aux = (Number(this.quadro[j]["resultado"]) / Number(this.quadro[j][valoresAnalise.VARIAVEL])) * -1;
                                     }
 
                                     if(aux > 0)
-                                        if(aux < valoresAnalise.AUMENTAR)
+                                        if(Number(aux) < Number(valoresAnalise.AUMENTAR))
                                             valoresAnalise.AUMENTAR = aux;
 
-                                    if(aux < 0)
-                                        if(aux > valoresAnalise.REDUZIR)
-                                            valoresAnalise.REDUZIR = Math.abs(aux);
+                                    aux = 0 - aux;
+
+                                    if(aux > 0)
+                                        if(Number(aux) < Number(valoresAnalise.REDUZIR))
+                                            valoresAnalise.REDUZIR = aux;
                                 }
                                 if(valoresAnalise.AUMENTAR == 99999999999999)
                                     valoresAnalise.AUMENTAR = "INF";
 
-                                if(valoresAnalise.REDUZIR == -99999999999999)
+                                if(valoresAnalise.REDUZIR == 99999999999999)
                                     valoresAnalise.REDUZIR = "INF";
 
                                 if(valoresAnalise.AUMENTAR == "INF")
                                     valoresAnalise.MAXIMO = "INF";
                                 else
                                 {
-                                    valoresAnalise.MAXIMO = valoresAnalise.VALORINICIAL + valoresAnalise.AUMENTAR;
+                                    valoresAnalise.MAXIMO = Number(valoresAnalise.VALORINICIAL) + Number(valoresAnalise.AUMENTAR);
                                 }
 
                                 if(valoresAnalise.REDUZIR == "INF")
                                     valoresAnalise.MINIMO = "INF";
                                 else
                                 {
-                                    valoresAnalise.MINIMO = valoresAnalise.VALORINICIAL - valoresAnalise.REDUZIR;
+                                    valoresAnalise.MINIMO = Number(valoresAnalise.VALORINICIAL) - Number(valoresAnalise.REDUZIR);
                                 }
                             }
                             else
