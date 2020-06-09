@@ -25,12 +25,11 @@
 	- Solução direta
 	- Solução com passo a passo
 	- Restrições <=
+	- Analise de Sensibilidade
+	- Tratamento de solução impossível
 	
 	Limitações do Simplex
 	
 	- Só aceita valores no formato americado e sem ','
+	- Não valida soluções infinitas
 	
-	Funcionalidades a serem implementadas
-	
-	- Analise de Sensibilidade
-	- Tratamento de solução impossível
