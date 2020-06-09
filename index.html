@@ -130,7 +130,7 @@
             </div>
             <div v-else-if="etapa == 5">
                 <div class="row">
-                    <h2 class="m-2 mx-auto pb-3">Solução Otima</h2>
+                    <h2 class="m-2 mx-auto pb-3">Solução Ótima</h2>
                 </div>
 
                 <div class="row" v-if="interacao != 0">
@@ -159,6 +159,59 @@
                     <span class="ml-2 mr-2 mt-1 mb-1">=</span>
                     <span class="ml-2 mr-2 mt-1 mb-1" v-if="(quadro.length -1) == index && objetivo == 'min'">{{ 0 - linha['resultado'] }}</span>
                     <span class="ml-2 mr-2 mt-1 mb-1" v-else>{{ linha['resultado'] }}</span>
+                </div>
+                <div class="row">
+                    <button class="btn btn-primary mx-auto" type="button" @click="mostrarAnalise">Mostrar Análise de Sensibilidade</button>
+                    <button class="btn btn-primary mx-auto" type="button" @click="voltarComeco">Voltar pro Começo</button>
+                </div>
+            </div>
+            <div v-else-if="etapa == 6">
+                <div class="row">
+                    <h2 class="m-2 mx-auto pb-3">Análise de Sensibilidade</h2>
+                </div>
+                <div class="row">
+                    <table class="table table-bordered">
+                        <thead>
+                            <tr>
+                                <th colspan="10"></th>
+                                <th class="text-center" colspan="4" style="font-size: 11px;">Calculo de variação das restrições</th>
+                            </tr>
+                            <tr>
+                                <th style="font-size: 11px;">Variável</th>
+                                <th style="font-size: 11px;">Tipo de Variável</th>
+                                <th style="font-size: 11px;">Valor Inicial</th>
+                                <th style="font-size: 11px;">Valor Final</th>
+                                <th style="font-size: 11px;">Recurso Escasso</th>
+                                <th style="font-size: 11px;">Básica</th>
+                                <th style="font-size: 11px;">Sobra Recurso</th>
+                                <th style="font-size: 11px;">Uso Recurso</th>
+                                <th style="font-size: 11px;">Preço Sombra</th>
+                                <th style="font-size: 11px;">Custo Reduzido</th>
+                                <th style="font-size: 11px;">Aumentar o Parâmetro</th>
+                                <th style="font-size: 11px;">Reduzir o Parâmetro</th>
+                                <th style="font-size: 11px;">Máximo</th>
+                                <th style="font-size: 11px;">Minimo</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="linha, index in quadroAnalise">
+                                <td>{{ linha['VARIAVEL'] }}</td>
+                                <td>{{ linha['TIPO'] }}</td>
+                                <td>{{ linha['VALORINICIAL'] }}</td>
+                                <td>{{ linha['VALORFINAL'] }}</td>
+                                <td>{{ linha['RECURSOESCASSO'] }}</td>
+                                <td>{{ linha['BASICA'] }}</td>
+                                <td>{{ linha['SOBRARECURSO'] }}</td>
+                                <td>{{ linha['USORECURSO'] }}</td>
+                                <td>{{ linha['PRECOSOMBRA'] }}</td>
+                                <td>{{ linha['CUSTOREDUZIDO'] }}</td>
+                                <td>{{ linha['AUMENTAR'] }}</td>
+                                <td>{{ linha['REDUZIR'] }}</td>
+                                <td>{{ linha['MAXIMO'] }}</td>
+                                <td>{{ linha['MINIMO'] }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
                 </div>
                 <div class="row">
                     <button class="btn btn-primary mx-auto" type="button" @click="voltarComeco">Começo</button>
@@ -191,9 +244,177 @@
                     interacao: 0,
                     colunas: [],
                     linhas: [],
-                    direta: false
+                    direta: false,
+                    quadroAnalise: []
                 },
                 methods:{
+                    mostrarAnalise(){
+                        this.etapa = 6;
+                    },
+                    analiseSensibilidade(){
+                        let linhasAnalise = Number(this.quantidaderestricoes) + Number(this.quantidadevariaveldecisao);
+
+                        let quadroAnalise = [];
+
+                        f = 1;
+                        x = 1;
+                        for(var i = 0; i <= linhasAnalise; i++)
+                        {
+                            let valoresAnalise = {};
+                            
+                            if(i < this.quantidadevariaveldecisao)
+                            {
+                                valoresAnalise.VARIAVEL = "X" + String(x);
+                                x++;
+
+                                valoresAnalise.TIPO = "Decisão";
+
+                                valoresAnalise.VALORINICIAL = 0;
+
+                                valoresAnalise.RECURSOESCASSO = "-";
+                                valoresAnalise.SOBRARECURSO = "-";
+                                valoresAnalise.USORECURSO = "-";
+
+                                valoresAnalise.PRECOSOMBRA = "-";
+
+                                if(this.linhas.indexOf(valoresAnalise.VARIAVEL) != -1)
+                                {
+                                    valoresAnalise.VALORFINAL = this.quadro[this.linhas.indexOf(valoresAnalise.VARIAVEL)]['resultado'];
+
+                                    valoresAnalise.BASICA = "Sim";
+                                }
+                                else
+                                {
+                                    valoresAnalise.VALORFINAL = 0;
+
+                                    valoresAnalise.BASICA = "Não";
+                                }
+
+                                if(valoresAnalise.BASICA == "Sim")
+                                    valoresAnalise.CUSTOREDUZIDO = 0;
+                                else
+                                    valoresAnalise.CUSTOREDUZIDO = this.quadro[this.quadro.length - 1][valoresAnalise.VARIAVEL];
+
+                                valoresAnalise.AUMENTAR = "-";
+                                valoresAnalise.REDUZIR = "-";
+                                valoresAnalise.MAXIMO = "-";
+                                valoresAnalise.MINIMO = "-";
+                            }
+                            else if(i < (Number(this.quantidaderestricoes) + Number(this.quantidadevariaveldecisao)))
+                            {
+                                valoresAnalise.VARIAVEL = "F" + String(f);
+                                valoresAnalise.VALORINICIAL = this.restricoesformapadrao[(f-1)]['resultado'];
+                                f++;
+
+                                valoresAnalise.TIPO = "Folga";
+
+                                if(this.linhas.indexOf(valoresAnalise.VARIAVEL) != -1 && this.quadro[this.linhas.indexOf(valoresAnalise.VARIAVEL)]['resultado'] == 0)
+                                {
+                                    valoresAnalise.RECURSOESCASSO = "Sim";
+                                }
+                                else
+                                {
+                                    valoresAnalise.RECURSOESCASSO = "Não";
+                                }
+
+                                if(this.linhas.indexOf(valoresAnalise.VARIAVEL) != -1)
+                                {
+                                    valoresAnalise.VALORFINAL = this.quadro[this.linhas.indexOf(valoresAnalise.VARIAVEL)]['resultado'];
+
+                                    valoresAnalise.BASICA = "Sim";
+
+                                    valoresAnalise.SOBRARECURSO = this.quadro[this.linhas.indexOf(valoresAnalise.VARIAVEL)]['resultado'];
+                                }
+                                else
+                                {
+                                    valoresAnalise.VALORFINAL = 0;
+
+                                    valoresAnalise.BASICA = "Não";
+
+                                    valoresAnalise.SOBRARECURSO = 0;
+                                }
+
+                                valoresAnalise.PRECOSOMBRA = this.quadro[this.quadro.length - 1][valoresAnalise.VARIAVEL];
+
+                                valoresAnalise.USORECURSO = valoresAnalise.VALORINICIAL - valoresAnalise.VALORFINAL;
+
+                                valoresAnalise.CUSTOREDUZIDO = "-";
+                                
+                                valoresAnalise.AUMENTAR = 99999999999999;
+                                valoresAnalise.REDUZIR = -99999999999999;
+                                for(var j = 0; j < (this.quadro.length - 1); j++)
+                                {
+                                    let aux = 0;
+                                    if(this.quadro[j][valoresAnalise.VARIAVEL] != 0)
+                                    {
+                                        aux = (this.quadro[j]["resultado"] / this.quadro[j][valoresAnalise.VARIAVEL]) * -1;
+                                    }
+
+                                    if(aux > 0)
+                                        if(aux < valoresAnalise.AUMENTAR)
+                                            valoresAnalise.AUMENTAR = aux;
+
+                                    if(aux < 0)
+                                        if(aux > valoresAnalise.REDUZIR)
+                                            valoresAnalise.REDUZIR = Math.abs(aux);
+                                }
+                                if(valoresAnalise.AUMENTAR == 99999999999999)
+                                    valoresAnalise.AUMENTAR = "INF";
+
+                                if(valoresAnalise.REDUZIR == -99999999999999)
+                                    valoresAnalise.REDUZIR = "INF";
+
+                                if(valoresAnalise.AUMENTAR == "INF")
+                                    valoresAnalise.MAXIMO = "INF";
+                                else
+                                {
+                                    valoresAnalise.MAXIMO = valoresAnalise.VALORINICIAL + valoresAnalise.AUMENTAR;
+                                }
+
+                                if(valoresAnalise.REDUZIR == "INF")
+                                    valoresAnalise.MINIMO = "INF";
+                                else
+                                {
+                                    valoresAnalise.MINIMO = valoresAnalise.VALORINICIAL - valoresAnalise.REDUZIR;
+                                }
+                            }
+                            else
+                            {
+                                valoresAnalise.VARIAVEL = "F.O";
+                                valoresAnalise.TIPO = "F.O";
+
+                                valoresAnalise.VALORINICIAL = 0;
+
+                                valoresAnalise.RECURSOESCASSO = "-";
+                                valoresAnalise.SOBRARECURSO = "-";
+                                valoresAnalise.USORECURSO = "-";
+
+                                if(this.linhas.indexOf(valoresAnalise.VARIAVEL) != -1)
+                                {
+                                    valoresAnalise.VALORFINAL = this.quadro[this.linhas.indexOf(valoresAnalise.VARIAVEL)]['resultado'];
+
+                                    valoresAnalise.BASICA = "Sim";
+                                }
+                                else
+                                {
+                                    valoresAnalise.VALORFINAL = 0;
+
+                                    valoresAnalise.BASICA = "Não";
+                                }
+
+                                valoresAnalise.PRECOSOMBRA = "-";
+                                valoresAnalise.CUSTOREDUZIDO = "-";
+
+                                valoresAnalise.AUMENTAR = "-";
+                                valoresAnalise.REDUZIR = "-";
+                                valoresAnalise.MAXIMO = "-";
+                                valoresAnalise.MINIMO = "-";
+                            }
+
+                            quadroAnalise.push(JSON.parse(JSON.stringify(valoresAnalise)))
+                        }
+                        this.quadroAnalise = JSON.parse(JSON.stringify(quadroAnalise));
+                    },
                     validaInput(evt){
                         var theEvent = evt || window.event;
                         var key = theEvent.keyCode || theEvent.which;
@@ -222,6 +443,7 @@
                         this.interacao = 0;
                         this.colunas = [];
                         this.linhas = [];
+                        this.quadroAnalise = [];
                     },
                     validaDadosEtapaUm(){
                         if(String(this.quantidaderestricoes).trim() == "" || Number(this.quantidaderestricoes) <= 0 || (String(this.quantidaderestricoes).indexOf('-') != -1 && String(this.quantidaderestricoes).indexOf('-') != 0))
@@ -297,6 +519,12 @@
                             
                             this.restricoesformapadrao.push(restricao);
                         }
+
+                        for(var i in this.restricoesformapadrao)
+                        {
+                            if(Number(this.restricoesformapadrao[i]['resultado']) < 0)
+                                return alert("Numero inválido, solução impossível.");
+                        }
                         
                         this.etapa = 3;
                     },
@@ -360,6 +588,7 @@
                         if(!menorzero)
                         {
                             this.etapa = 5;
+                            this.analiseSensibilidade();
                         }
                         else if(this.direta)
                         {
